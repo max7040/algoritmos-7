@@ -1,5 +1,3 @@
-#codigo copiado del PDF-sin modificaciones
-
 import pandas as pd
 import time
 import matplotlib.pyplot as plt
@@ -72,15 +70,55 @@ class HashTableLinearProbing:
         return total_elements / self.size
 
 
+class HashTableDoubleHashing:
+    def __init__(self, size):
+        self.size = size
+        self.table = [None] * size
+        self.collisions = 0
+
+    def hash_function1(self, key):
+        return hash(str(key)) % self.size
+
+    def hash_function2(self, key):
+        return 1 + (hash(str(key)) % (self.size - 1))
+
+    def insert(self, key, value):
+        index = self.hash_function1(key)
+        step = self.hash_function2(key)
+
+        while self.table[index] is not None:
+            self.collisions += 1
+            index = (index + step) % self.size
+
+        self.table[index] = (key, value)
+
+    def search(self, key):
+        index = self.hash_function1(key)
+        step = self.hash_function2(key)
+        start = index
+
+        while self.table[index] is not None:
+            if self.table[index][0] == key:
+                return self.table[index][1]
+
+            index = (index + step) % self.size
+
+            if index == start:
+                break
+
+        return None
+
+    def load_factor(self, total_elements):
+        return total_elements / self.size
+
+
 # Cargar dataset descargado desde Kaggle
-# Cambiar el nombre del archivo según el dataset utilizado
-df = pd.read_csv("online_retail_II.csv")
+df = pd.read_csv("online_retail.csv")
 
 # Limpieza básica de datos
 df = df.dropna()
 
 # Selección de claves
-# Para otros datasets puede cambiarse por product_id, Invoice o StockCode
 keys = df["Invoice"].astype(str).head(10000).tolist()
 
 table_size = 20011
@@ -114,6 +152,20 @@ for key in keys[:1000]:
 search_time_linear = time.time() - start_time
 
 
+# Prueba con doble hashing
+hash_double = HashTableDoubleHashing(table_size)
+
+start_time = time.time()
+for key in keys:
+    hash_double.insert(key, {"Invoice": key})
+insert_time_double = time.time() - start_time
+
+start_time = time.time()
+for key in keys[:1000]:
+    hash_double.search(key)
+search_time_double = time.time() - start_time
+
+
 # Comparación con diccionario nativo de Python
 native_dict = {}
 
@@ -133,26 +185,31 @@ results = pd.DataFrame({
     "Metodo": [
         "Encadenamiento",
         "Sondeo lineal",
+        "Doble hashing",
         "Diccionario Python"
     ],
     "Tiempo insercion": [
         insert_time_chain,
         insert_time_linear,
+        insert_time_double,
         insert_time_dict
     ],
     "Tiempo busqueda": [
         search_time_chain,
         search_time_linear,
+        search_time_double,
         search_time_dict
     ],
     "Colisiones": [
         hash_chain.collisions,
         hash_linear.collisions,
+        hash_double.collisions,
         0
     ],
     "Factor de carga": [
         hash_chain.load_factor(len(keys)),
         hash_linear.load_factor(len(keys)),
+        hash_double.load_factor(len(keys)),
         len(keys) / table_size
     ]
 })
@@ -177,6 +234,17 @@ plt.bar(results["Metodo"], results["Tiempo busqueda"])
 plt.title("Comparacion de tiempo de busqueda")
 plt.xlabel("Metodo")
 plt.ylabel("Tiempo en segundos")
+plt.xticks(rotation=20)
+plt.tight_layout()
+plt.show()
+
+
+# Gráfico de colisiones
+plt.figure(figsize=(8, 5))
+plt.bar(results["Metodo"], results["Colisiones"])
+plt.title("Comparacion de colisiones")
+plt.xlabel("Metodo")
+plt.ylabel("Numero de colisiones")
 plt.xticks(rotation=20)
 plt.tight_layout()
 plt.show()

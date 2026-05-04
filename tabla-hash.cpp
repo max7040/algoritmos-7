@@ -158,7 +158,7 @@ vector<string> readKeysFromCSV(string filename, int limit) {
 }
 
 int main() {
-    string filename = "ecommerce_sample.csv";
+    string filename = "online_retail.csv";
     int limit = 10000;
     int tableSize = 20011;
 
